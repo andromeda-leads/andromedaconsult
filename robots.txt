@@ -1,0 +1,6 @@
+# ANDROMEDA CONSULT - служебные файлы сайта
+# сборка 2026-10-26 12:25
+User-agent: *
+Allow: /
+Disallow: /assets/private/
+Sitemap: https://andromedaconsult.ru/sitemap.xml
