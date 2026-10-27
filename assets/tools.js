@@ -432,7 +432,7 @@
     var API = 'https://agrosignal.mypetlab.org/contracts/andromeda.programs-api/1.0/programs';
     var KEY = 'eba4dee056396796f9d883b4f33adae05f385c6585c6608675ece0636092018a';
     var LABEL = { open: ['Приём идёт', 'ok'], always: ['Постоянно', 'gold'],
-      watch: ['Следим за датой', ''], soon: ['Окно закрыто', ''] };
+      watch: ['Отслеживаем', ''], soon: ['Окно закрыто', ''] };
     fetch(API + '?key=' + KEY).then(function (r) { return r.json(); }).then(function (d) {
       var items = (d && d.items) || [];
       var byslug = {};
@@ -457,7 +457,104 @@
     }).catch(function () { /* оставляем даты, собранные при сборке сайта */ });
   }
 
-  function init() { podbor(); innCheck(); booking(); programsDates(); }
+  /* ---------- заявка на кредит ---------- */
+  var LOAN_NAMES = {
+    ipoteka: 'Промышленная ипотека',
+    vysokoteh: '«Высокотех»',
+    frp: 'ФРП «Проекты развития»',
+    monogoroda: 'Моногорода',
+    oborot: 'Оборотное финансирование'
+  };
+
+  function loansForm() {
+    var form = el('loanForm');
+    if (!form) return;
+    var msg = form.querySelector('.form-msg');
+    var btn = form.querySelector('button[type="submit"]');
+
+    function chosen(name) {
+      return Array.prototype.slice.call(form.querySelectorAll('input[name="' + name + '"]:checked'))
+        .map(function (c) { return c.getAttribute('data-name') || c.value; });
+    }
+
+    function tick(code) {
+      var box = form.querySelector('input[name="lp"][value="' + code + '"]');
+      if (box) box.checked = true;
+    }
+
+    /* программа из адреса (?program=frp) или из кнопки в таблице */
+    var q = (location.search.match(/[?&]program=([a-z0-9_-]+)/i) || [])[1];
+    if (q && LOAN_NAMES[q]) tick(q);
+
+    Array.prototype.forEach.call(document.querySelectorAll('[data-program-pick]'), function (a) {
+      a.addEventListener('click', function () {
+        tick(a.getAttribute('data-program-pick'));
+        var f = el('lfName');
+        setTimeout(function () { if (f) f.focus({ preventScroll: true }); }, 420);
+      });
+    });
+
+    function show(cls, html) {
+      if (!msg) return;
+      msg.className = 'form-msg ' + cls;
+      msg.innerHTML = html;
+    }
+
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var nm = (el('lfName').value || '').trim();
+      var ph = (el('lfPhone').value || '').trim();
+      var em = (el('lfEmail').value || '').trim();
+      var progs = chosen('lp'), needs = chosen('ln');
+
+      if (nm.length < 2) { show('err', 'Укажите имя: без него не поймём, к кому обращаться'); el('lfName').focus(); return; }
+      if (ph.replace(/\D/g, '').length < 10 && em.indexOf('@') < 0) {
+        show('err', 'Оставьте телефон или почту: иначе не сможем ответить'); el('lfPhone').focus(); return;
+      }
+      if (!progs.length && !needs.length) {
+        show('err', 'Отметьте программу или направление - что именно нужно'); return;
+      }
+
+      var parts = [];
+      if (progs.length) parts.push('Программы: ' + progs.join(', '));
+      if (needs.length) parts.push('Нужно: ' + needs.join(', '));
+
+      btn.disabled = true;
+      var btnText = btn.textContent;
+      btn.textContent = 'Отправляем…';
+      show('', '');
+      msg.className = 'form-msg';
+      msg.textContent = '';
+
+      fetch(LEAD_API + '?key=' + LEAD_KEY, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kind: 'Заявка на кредит',
+          name: nm,
+          phone: ph,
+          email: em,
+          company: (el('lfCompany').value || '').trim(),
+          program: parts.join('. '),
+          comment: (el('lfComment').value || '').trim(),
+          page: 'service-loans.html'
+        })
+      }).then(function (r) { return r.json(); }).then(function (d) {
+        if (!d || !d.ok) throw new Error((d && d.error) || 'сервис занят');
+        show('ok', 'Заявка ' + esc(d.id || '') + ' принята. Ответим в рабочее время: сначала короткий разговор, потом расчёт по выбранным программам.');
+        form.reset();
+        btn.disabled = false;
+        btn.textContent = btnText;
+      }).catch(function (err) {
+        var m = (err && err.message && err.message !== 'сервис занят') ? err.message : '';
+        show('err', (m ? esc(m) + '. ' : '') + 'Не удалось отправить автоматически. Позвоните 8 916 770-25-55 или напишите на info@andromedaconsult.ru - заявку примем вручную.');
+        btn.disabled = false;
+        btn.textContent = btnText;
+      });
+    });
+  }
+
+  function init() { podbor(); innCheck(); booking(); programsDates(); loansForm(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
