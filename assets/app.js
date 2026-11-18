@@ -143,6 +143,35 @@
   }
 
   document.querySelectorAll('form[data-lead]').forEach(function (form) {
+    var loadedAt = Date.now();
+
+    // приманка для скриптов: человек её не видит, робот заполняет
+    var hp = document.createElement('input');
+    hp.type = 'text';
+    hp.name = 'hp';
+    hp.tabIndex = -1;
+    hp.className = 'lead-hp';
+    hp.setAttribute('autocomplete', 'off');
+    hp.setAttribute('aria-hidden', 'true');
+    form.appendChild(hp);
+
+    // подтверждение «я не робот»
+    var check = document.createElement('label');
+    check.className = 'lead-check';
+    var checkBox = document.createElement('input');
+    checkBox.type = 'checkbox';
+    checkBox.name = 'robot_ok';
+    var checkText = document.createElement('span');
+    checkText.textContent = 'Я не робот';
+    check.appendChild(checkBox);
+    check.appendChild(checkText);
+    var submitBtn = form.querySelector('button[type=submit]');
+    if (submitBtn && submitBtn.parentNode) {
+      submitBtn.parentNode.insertBefore(check, submitBtn);
+    } else {
+      form.appendChild(check);
+    }
+
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       var data = {};
@@ -150,16 +179,22 @@
         if (LEAD_FIELDS.indexOf(k) >= 0) data[k] = String(v).trim();
       });
       var msg = form.querySelector('.form-msg');
-      var btn = form.querySelector('button[type=submit]');
+      var btn = submitBtn || form.querySelector('button[type=submit]');
       var name = data.name || '';
       var phone = data.phone || '';
       if (name.length < 2) { return showMsg(msg, 'err', 'Укажите имя, пожалуйста.'); }
       if (phone.replace(/\D/g, '').length < 10 && !(data.email && data.email.indexOf('@') > 0)) {
         return showMsg(msg, 'err', 'Нужен телефон или e-mail: иначе не сможем ответить.');
       }
+      if (!checkBox.checked) {
+        return showMsg(msg, 'err', 'Отметьте, пожалуйста, что вы не робот.');
+      }
 
       data.kind = form.getAttribute('data-lead');
       data.page = location.pathname.split('/').pop() || 'index.html';
+      data.hp = hp.value;
+      data.elapsed = Math.round((Date.now() - loadedAt) / 100) / 10;
+      data.robot_ok = true;
       if (btn) btn.disabled = true;
       showMsg(msg, 'ok', 'Отправляем заявку…');
 

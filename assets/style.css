@@ -283,6 +283,12 @@ td b{color:#111826}
 .form-msg.ok{display:block;background:#E8F3ED;border:1px solid #B7D9C7;color:#1F5C42}
 .form-msg.err{display:block;background:#FBEDE4;border:1px solid #EFC8A9;color:#8A3E0C}
 
+/* --- защита форм от роботов: приманка и подтверждение --- */
+.lead-hp{position:absolute!important;left:-9999px!important;top:auto!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important}
+.lead-check{display:flex;align-items:center;gap:9px;margin:16px 0 10px;font-size:14.5px;color:#2B2B2B;cursor:pointer;user-select:none}
+.lead-check input{width:17px;height:17px;accent-color:#D4A843;cursor:pointer;flex:none}
+
+
 /* --- выбор программы и кнопки в таблице --- */
 .btn-xs{padding:7px 12px;font-size:12.5px;border-radius:8px;line-height:1.25;white-space:nowrap}
 .btn-soft{background:rgba(212,168,67,.12);color:#8A6716;border:1px solid rgba(212,168,67,.42)}
